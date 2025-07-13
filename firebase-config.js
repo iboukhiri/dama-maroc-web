@@ -16,7 +16,8 @@
 
 // 🔽 YOUR ACTUAL FIREBASE CONFIG (Updated):
 const firebaseConfig = {
-    apiKey: "AIzaSyA_hin_Bzj8dFCzVuKcvGGum1_dBLJed2I",
+    // IMPORTANT: Do NOT commit real API keys.  Replace the placeholder below with your own key in a private build step or Firebase config.
+    apiKey: "REPLACE_WITH_YOUR_FIREBASE_API_KEY",
     authDomain: "dama-maroc-8bcff.firebaseapp.com",
     databaseURL: "https://dama-maroc-8bcff-default-rtdb.europe-west1.firebasedatabase.app/",
     projectId: "dama-maroc-8bcff",
