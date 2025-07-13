@@ -183,7 +183,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Iliass Boukhiri**
 - GitHub: [@iboukhiri](https://github.com/iboukhiri)
-- Email: [your-email@example.com](mailto:your-email@example.com)
+- Email: [iliassboukhiri@gmail.com](mailto:iliassboukhiri@gmail.com)
 
 ## 🙏 Acknowledgments
 

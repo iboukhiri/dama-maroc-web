@@ -19,7 +19,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 Instead, please report security vulnerabilities privately by:
 
-1. **Email**: Send details to [your-email@example.com](mailto:your-email@example.com)
+1. **Email**: Send details to [iliassboukhiri@gmail.com](mailto:iliassboukhiri@gmail.com)
 2. **Subject**: Include "SECURITY" in the subject line
 3. **Details**: Provide as much information as possible about the vulnerability
 
@@ -101,7 +101,7 @@ Security updates will be:
 
 For security-related questions or concerns:
 
-- **Email**: [your-email@example.com](mailto:your-email@example.com)
+- **Email**: [iliassboukhiri@gmail.com](mailto:iliassboukhiri@gmail.com)
 - **GitHub**: [@iboukhiri](https://github.com/iboukhiri)
 
 ---

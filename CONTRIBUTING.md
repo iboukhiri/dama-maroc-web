@@ -47,7 +47,7 @@ Enhancement suggestions are welcome! Please provide:
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/dama-maroc-web.git
+git clone https://github.com/your-username/dama-maroc-web.git
 cd dama-maroc-web
 
 # Install Firebase CLI (if not already installed)
