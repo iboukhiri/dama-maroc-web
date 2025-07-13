@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Test - Dama</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .connection-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .connected { background: #28a745; }
+        .disconnected { background: #dc3545; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Dama Multiplayer Test</h1>
+    
+    <div class="test-section">
+        <h2>🔥 Firebase Connection Status</h2>
+        <div id="firebaseStatus" class="status info">Checking Firebase connection...</div>
+        <button onclick="testFirebaseConnection()">Test Connection</button>
+        <button onclick="checkConnectionState()">Check State</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 Multiplayer Functions Test</h2>
+        <div id="multiplayerStatus" class="status info">Testing multiplayer initialization...</div>
+        <button onclick="testCreateRoom()">Create Test Room</button>
+        <button onclick="testSendMove()" id="sendMoveBtn" disabled>Send Test Move</button>
+        <button onclick="testLeaveRoom()" id="leaveRoomBtn" disabled>Leave Room</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Live Connection Monitor</h2>
+        <div>
+            Status: <span class="connection-indicator" id="liveIndicator"></span>
+            <span id="liveStatus">Checking...</span>
+        </div>
+        <div id="connectionInfo" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Test Log</h2>
+        <button onclick="clearLog()">Clear Log</button>
+        <pre id="testLog"></pre>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="online-multiplayer.js"></script>
+
+    <script>
+        let testRoomCode = null;
+        let testMultiplayer = null;
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const formattedMessage = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+            logEl.textContent += formattedMessage + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`${type}: ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').textContent = '';
+        }
+
+        function updateStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status ${type}`;
+        }
+
+        async function testFirebaseConnection() {
+            log('Testing Firebase connection...');
+            
+            try {
+                if (!window.firebase) {
+                    throw new Error('Firebase SDK not loaded');
+                }
+
+                if (!window.firebaseDatabase) {
+                    throw new Error('Firebase database not initialized');
+                }
+
+                if (!window.isFirebaseReady()) {
+                    throw new Error('Firebase not ready');
+                }
+
+                const result = await window.testFirebaseConnection();
+                
+                if (result.success) {
+                    updateStatus('firebaseStatus', '✅ ' + result.message, 'success');
+                    log('Firebase connection successful', 'success');
+                } else {
+                    updateStatus('firebaseStatus', '❌ ' + result.message, 'error');
+                    log('Firebase connection failed: ' + result.message, 'error');
+                }
+            } catch (error) {
+                updateStatus('firebaseStatus', '❌ Error: ' + error.message, 'error');
+                log('Firebase test error: ' + error.message, 'error');
+            }
+        }
+
+        function checkConnectionState() {
+            if (window.getConnectionState) {
+                const state = window.getConnectionState();
+                log('Connection state: ' + JSON.stringify(state, null, 2));
+                document.getElementById('connectionInfo').innerHTML = '<pre>' + JSON.stringify(state, null, 2) + '</pre>';
+            } else {
+                log('getConnectionState not available', 'error');
+            }
+        }
+
+        async function testCreateRoom() {
+            log('Testing room creation...');
+            
+            try {
+                if (!window.onlineMultiplayer) {
+                    throw new Error('OnlineMultiplayer not available');
+                }
+
+                testMultiplayer = window.onlineMultiplayer;
+                testRoomCode = await testMultiplayer.createRoom();
+                
+                updateStatus('multiplayerStatus', `✅ Room created: ${testRoomCode}`, 'success');
+                log(`Room created successfully: ${testRoomCode}`, 'success');
+                
+                document.getElementById('sendMoveBtn').disabled = false;
+                document.getElementById('leaveRoomBtn').disabled = false;
+                
+            } catch (error) {
+                updateStatus('multiplayerStatus', '❌ Error: ' + error.message, 'error');
+                log('Room creation error: ' + error.message, 'error');
+            }
+        }
+
+        async function testSendMove() {
+            log('Testing move sending...');
+            
+            try {
+                if (!testMultiplayer) {
+                    throw new Error('No active multiplayer session');
+                }
+
+                // Test sending a simple move
+                const result = await testMultiplayer.sendMove(5, 0, 4, 1, [], false);
+                
+                if (result) {
+                    log('Test move sent successfully', 'success');
+                } else {
+                    log('Test move failed to send', 'error');
+                }
+                
+            } catch (error) {
+                log('Move sending error: ' + error.message, 'error');
+            }
+        }
+
+        async function testLeaveRoom() {
+            log('Testing room leave...');
+            
+            try {
+                if (!testMultiplayer) {
+                    throw new Error('No active multiplayer session');
+                }
+
+                await testMultiplayer.leaveRoom();
+                updateStatus('multiplayerStatus', '✅ Left room successfully', 'success');
+                log('Left room successfully', 'success');
+                
+                document.getElementById('sendMoveBtn').disabled = true;
+                document.getElementById('leaveRoomBtn').disabled = true;
+                testRoomCode = null;
+                testMultiplayer = null;
+                
+            } catch (error) {
+                log('Leave room error: ' + error.message, 'error');
+            }
+        }
+
+        // Live connection monitoring
+        function updateLiveStatus() {
+            const indicator = document.getElementById('liveIndicator');
+            const status = document.getElementById('liveStatus');
+            
+            if (window.isFirebaseReady && window.isFirebaseReady()) {
+                indicator.className = 'connection-indicator connected';
+                status.textContent = 'Connected';
+            } else {
+                indicator.className = 'connection-indicator disconnected';
+                status.textContent = 'Disconnected';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Test page loaded');
+            
+            // Check initial Firebase status
+            setTimeout(testFirebaseConnection, 1000);
+            
+            // Start live monitoring
+            setInterval(updateLiveStatus, 1000);
+            updateLiveStatus();
+        });
+
+        // Monitor Firebase connection changes
+        if (window.firebaseDatabase) {
+            window.firebaseDatabase.ref('.info/connected').on('value', (snapshot) => {
+                const connected = snapshot.val() === true;
+                log(`Firebase connection changed: ${connected ? 'Connected' : 'Disconnected'}`);
+                updateLiveStatus();
+            });
+        }
+    </script>
+</body>
+</html> 

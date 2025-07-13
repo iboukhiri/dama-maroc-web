@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Moroccan Checkers (Dama)</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body data-theme="light">
+    <!-- Theme Toggle / Dropdown -->
+    <div class="theme-toggle" id="themeToggle">
+        <i class="fas fa-sun" id="themeIcon"></i>
+        <div class="theme-dropdown" id="themeDropdown">
+            <div class="theme-option" data-theme="light"><i class="fas fa-sun"></i> Light</div>
+            <div class="theme-option" data-theme="dark"><i class="fas fa-moon"></i> Dark</div>
+            <div class="theme-option" data-theme="wood"><i class="fas fa-tree"></i> Wood</div>
+            <div class="theme-option" data-theme="neon"><i class="fas fa-bolt"></i> Neon</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="welcome-screen active">
+            <div class="hero-section">
+                <div class="logo-container">
+                    <div class="logo-symbol">♛</div>
+                    <h1 class="brand-title">DAMA</h1>
+                </div>
+                <p class="hero-subtitle">Traditional Moroccan Checkers</p>
+                <p class="hero-description">Experience the ancient art of strategic warfare on the checkered battlefield</p>
+                <button class="primary-btn" onclick="showModeSelection()">
+                    <span>Start Playing</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mode Selection Screen -->
+        <div id="modeSelector" class="mode-selector">
+            <div class="selection-container">
+                <div class="back-button" onclick="showWelcomeScreen()">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back</span>
+                </div>
+                
+                <h2 class="selection-title">Choose Your Challenge</h2>
+                <p class="selection-subtitle">Select your preferred game mode</p>
+                
+                <div class="mode-options">
+                    <div class="mode-option ai-mode" onclick="showAISelection()">
+                        <div class="mode-header">
+                            <i class="fas fa-robot"></i>
+                            <h3>Challenge AI</h3>
+                        </div>
+                        <p>Test your skills against artificial intelligence</p>
+                        <div class="mode-features">
+                            <span class="feature-tag">Single Player</span>
+                            <span class="feature-tag">3 Difficulties</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mode-option multiplayer-mode" onclick="showMultiplayerOptions()">
+                        <div class="mode-header">
+                            <i class="fas fa-users"></i>
+                            <h3>Multiplayer</h3>
+                        </div>
+                        <p>Play with friends locally or online</p>
+                        <div class="mode-features">
+                            <span class="feature-tag">Local & Online</span>
+                            <span class="feature-tag">Real-time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multiplayer Options Screen -->
+        <div id="multiplayerSelector" class="multiplayer-selector">
+            <div class="selection-container">
+                <div class="back-button" onclick="showModeSelection()">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back</span>
+                </div>
+                
+                <h2 class="selection-title">Choose Multiplayer Type</h2>
+                <p class="selection-subtitle">Select how you want to play with others</p>
+                
+                <div class="multiplayer-options">
+                    <div class="multiplayer-option local-option" data-mode="pvp">
+                        <div class="option-header">
+                            <i class="fas fa-users"></i>
+                            <h3>Local Multiplayer</h3>
+                        </div>
+                        <p>Challenge a friend on the same device</p>
+                        <div class="option-features">
+                            <span class="feature-tag">Same Device</span>
+                            <span class="feature-tag">2 Players</span>
+                        </div>
+                    </div>
+                    
+                    <div class="multiplayer-option online-option" onclick="showOnlineOptions()">
+                        <div class="option-header">
+                            <i class="fas fa-globe"></i>
+                            <h3>Online Multiplayer</h3>
+                        </div>
+                        <p>Play with friends anywhere in the world</p>
+                        <div class="option-features">
+                            <span class="feature-tag">Global</span>
+                            <span class="feature-tag">Real-time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Online Options Screen -->
+        <div id="onlineSelector" class="online-selector">
+            <div class="selection-container">
+                <div class="back-button" onclick="showMultiplayerOptions()">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back</span>
+                </div>
+                
+                <h2 class="selection-title">Online Multiplayer</h2>
+                <p class="selection-subtitle">Connect with players worldwide</p>
+                
+                <div class="online-options">
+                    <div class="online-option create-room" onclick="createOnlineRoom()">
+                        <div class="option-icon">🎮</div>
+                        <h3>Create Room</h3>
+                        <p>Start a new game and invite a friend</p>
+                    </div>
+                    
+                    <div class="online-option join-room">
+                        <div class="option-icon">🔗</div>
+                        <h3>Join Room</h3>
+                        <p>Enter a room code to join a game</p>
+                        <div class="room-input-container">
+                            <input type="text" id="roomCodeInput" placeholder="Enter room code" maxlength="6">
+                            <button onclick="joinOnlineRoom()" class="join-btn">Join</button>
+                        </div>
+                    </div>
+                    
+                    <div class="online-option quick-match" onclick="findQuickMatch()">
+                        <div class="option-icon">⚡</div>
+                        <h3>Quick Match</h3>
+                        <p>Find a random opponent instantly</p>
+                    </div>
+                </div>
+                
+                <div class="player-info">
+                    <div class="player-name-container">
+                        <label>Your Name:</label>
+                        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Difficulty Selection -->
+        <div id="aiSelector" class="ai-selector">
+            <div class="selection-container">
+                <div class="back-button" onclick="showModeSelection()">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back</span>
+                </div>
+                
+                <h2 class="selection-title">Choose Difficulty</h2>
+                <p class="selection-subtitle">Select your AI opponent strength</p>
+                
+                <div class="difficulty-options">
+                    <div class="difficulty-option easy" data-mode="ai-easy">
+                        <div class="difficulty-icon">🌱</div>
+                        <h3>Novice</h3>
+                        <p>Perfect for learning the game</p>
+                        <div class="difficulty-bars">
+                            <div class="bar active"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="difficulty-option medium" data-mode="ai-medium">
+                        <div class="difficulty-icon">⚡</div>
+                        <h3>Strategist</h3>
+                        <p>Balanced challenge for most players</p>
+                        <div class="difficulty-bars">
+                            <div class="bar active"></div>
+                            <div class="bar active"></div>
+                            <div class="bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="difficulty-option hard" data-mode="ai-hard">
+                        <div class="difficulty-icon">🔥</div>
+                        <h3>Master</h3>
+                        <p>Ultimate challenge for experts</p>
+                        <div class="difficulty-bars">
+                            <div class="bar active"></div>
+                            <div class="bar active"></div>
+                            <div class="bar active"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waiting Room Screen -->
+        <div id="waitingRoom" class="waiting-room">
+            <div class="waiting-container">
+                <div class="glass-card waiting-card">
+                    <div class="waiting-animation">
+                        <div class="spinner"></div>
+                    </div>
+                    <h2 id="waitingTitle">Waiting for opponent...</h2>
+                    <p id="waitingMessage">Share this room code with your friend:</p>
+                    <div class="room-code-display">
+                        <span id="roomCodeDisplay">------</span>
+                        <button onclick="copyRoomCode()" class="copy-btn">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="waiting-players">
+                        <div class="player-slot filled">
+                            <i class="fas fa-user"></i>
+                            <span id="player1Name">You</span>
+                        </div>
+                        <div class="vs-divider">VS</div>
+                        <div class="player-slot empty" id="player2Slot">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Waiting...</span>
+                        </div>
+                    </div>
+                    <button onclick="leaveWaitingRoom()" class="cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="game-screen">
+            <div class="game-header">
+                <div class="glass-card header-card">
+                    <div class="game-info">
+                        <h2 id="gameMode">Player vs Player</h2>
+                        <div id="currentPlayer" class="player-indicator">
+                            <span class="player-color player1"></span>
+                            <span id="playerText">Player 1's Turn</span>
+                        </div>
+                    </div>
+                    <div class="game-controls">
+                        <button id="resetGame" class="control-btn">
+                            <span>🔄</span> Reset
+                        </button>
+                        <button id="backToMenu" class="control-btn">
+                            <span>🏠</span> Menu
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-content">
+                <div class="board-container">
+                    <div class="glass-card board-card">
+                        <div id="gameBoard" class="game-board"></div>
+                    </div>
+                </div>
+
+                <div class="game-sidebar">
+                    <div class="glass-card stats-card">
+                        <h3>Game Stats</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">Player 1 Pieces</span>
+                                <span id="player1Count" class="stat-value">12</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Player 2 Pieces</span>
+                                <span id="player2Count" class="stat-value">12</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Moves Made</span>
+                                <span id="moveCount" class="stat-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Online Game Info -->
+                    <div class="glass-card online-info-card" id="onlineInfoCard" style="display: none;">
+                        <h3>Online Game</h3>
+                        <div class="online-players">
+                            <div class="online-player">
+                                <i class="fas fa-user"></i>
+                                <span id="onlinePlayer1Name">Player 1</span>
+                            </div>
+                            <div class="online-player">
+                                <i class="fas fa-user"></i>
+                                <span id="onlinePlayer2Name">Player 2</span>
+                            </div>
+                        </div>
+                        <div class="connection-status">
+                            <div class="connection-indicator connected" title="Connected to server"></div>
+                            <span id="connectionStatus">Connected</span>
+                        </div>
+                        <div class="room-code-info">
+                            <span class="room-label">Room Code:</span>
+                            <span id="currentRoomCode">------</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card history-card">
+                        <h3>Move History</h3>
+                        <div id="moveHistory" class="move-history"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverModal" class="modal-overlay">
+            <div class="glass-card modal-card">
+                <h2 id="gameOverTitle">Game Over!</h2>
+                <p id="gameOverMessage">Player 1 Wins!</p>
+                <div class="modal-buttons">
+                    <button id="playAgain" class="btn-primary">Play Again</button>
+                    <button id="backToMenuModal" class="btn-secondary">Back to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hezzek o Nfokh Modal -->
+        <div id="hezzekModal" class="modal-overlay">
+            <div class="glass-card modal-card hezzek-modal">
+                <h2>هَزّكْ أُنْفُخْ!</h2>
+                <h3>Hezzek o Nfokh!</h3>
+                <p id="hezzekMessage">You missed a capture! Your piece has been eliminated as punishment.</p>
+                <div class="modal-buttons">
+                    <button id="continueAfterHezzek" class="btn-primary">Continue Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Lost Modal -->
+        <div id="connectionLostModal" class="modal-overlay">
+            <div class="glass-card modal-card">
+                <h2>Connection Lost</h2>
+                <p>Lost connection to your opponent. The game has been paused.</p>
+                <div class="modal-buttons">
+                    <button onclick="reconnectToGame()" class="btn-primary">Try Reconnect</button>
+                    <button onclick="backToMenu()" class="btn-secondary">Back to Menu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script src="online-multiplayer.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

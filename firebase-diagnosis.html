@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Diagnosis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button {
+            padding: 10px 15px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background-color: #3367d6;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            overflow: auto;
+            border-radius: 4px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4285f4;
+        }
+        .status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status.connected {
+            background-color: green;
+        }
+        .status.disconnected {
+            background-color: red;
+        }
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Firebase Diagnosis Tool</h1>
+        <p>This page helps diagnose issues with your Firebase connection and setup.</p>
+
+        <div class="test-section">
+            <h2>Firebase Connection Status</h2>
+            <div>
+                Status: <span id="connectionStatus">Checking...</span>
+                <span id="statusIndicator" class="status"></span>
+            </div>
+            <div class="test-result" id="connectionTestResult"></div>
+            <button class="button" id="testConnectionBtn">Test Connection</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Firebase Configuration</h2>
+            <div class="test-result" id="configTestResult">Checking configuration...</div>
+            <button class="button" id="testConfigBtn">Test Configuration</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Database Access Test</h2>
+            <div class="test-result" id="dbTestResult"></div>
+            <button class="button" id="testDbReadBtn">Test Read</button>
+            <button class="button" id="testDbWriteBtn">Test Write</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Game State Synchronization Test</h2>
+            <div>
+                <button class="button" id="createRoomBtn">Create Test Room</button>
+                <button class="button" id="simulateMoveBtn" disabled>Simulate Move</button>
+                <button class="button" id="clearRoomBtn" disabled>Clear Test Room</button>
+            </div>
+            <div>
+                <strong>Room Code: </strong><span id="testRoomCode">-</span>
+            </div>
+            <div class="test-result" id="syncTestResult"></div>
+            <div>
+                <h3>Game State Monitor</h3>
+                <pre id="gameStateMonitor">No data yet</pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Log</h2>
+            <div class="log-container">
+                <pre id="logOutput"></pre>
+            </div>
+            <button class="button" id="clearLogBtn">Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        let testRoomRef = null;
+
+        // Log function
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const formattedMessage = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+            logEl.innerHTML += formattedMessage + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`${type}: ${message}`);
+        }
+
+        // Test Firebase connection
+        async function testConnection() {
+            const resultEl = document.getElementById('connectionTestResult');
+            const statusEl = document.getElementById('connectionStatus');
+            const indicatorEl = document.getElementById('statusIndicator');
+
+            try {
+                if (!window.firebase) {
+                    throw new Error("Firebase SDK not loaded");
+                }
+
+                resultEl.innerHTML = "Testing connection...";
+                log("Testing Firebase connection...");
+
+                // Check if already connected
+                if (window.firebaseDatabase) {
+                    const connectedRef = window.firebaseDatabase.ref(".info/connected");
+                    
+                    return new Promise((resolve) => {
+                        connectedRef.on("value", (snap) => {
+                            const connected = snap.val() === true;
+                            
+                            if (connected) {
+                                statusEl.textContent = "Connected";
+                                statusEl.className = "success";
+                                indicatorEl.className = "status connected";
+                                resultEl.innerHTML = "<span class='success'>✓ Connected to Firebase successfully!</span>";
+                                log("Connected to Firebase successfully", "success");
+                                resolve(true);
+                            } else {
+                                statusEl.textContent = "Disconnected";
+                                statusEl.className = "error";
+                                indicatorEl.className = "status disconnected";
+                                resultEl.innerHTML = "<span class='error'>✗ Not connected to Firebase</span>";
+                                log("Not connected to Firebase", "error");
+                                resolve(false);
+                            }
+                        });
+                    });
+                } else {
+                    throw new Error("Firebase Database not initialized");
+                }
+            } catch (error) {
+                statusEl.textContent = "Error";
+                statusEl.className = "error";
+                indicatorEl.className = "status disconnected";
+                resultEl.innerHTML = `<span class='error'>✗ Connection error: ${error.message}</span>`;
+                log(`Connection error: ${error.message}`, "error");
+                return false;
+            }
+        }
+
+        // Test Firebase configuration
+        function testConfig() {
+            const resultEl = document.getElementById('configTestResult');
+            
+            try {
+                if (!window.firebaseConfig) {
+                    throw new Error("Firebase configuration not found");
+                }
+                
+                log("Testing Firebase configuration...");
+                resultEl.innerHTML = "Testing configuration...";
+                
+                // Check required config fields
+                const requiredFields = ['apiKey', 'authDomain', 'databaseURL', 'projectId'];
+                const missingFields = requiredFields.filter(field => !window.firebaseConfig[field]);
+                
+                if (missingFields.length > 0) {
+                    throw new Error(`Missing required configuration fields: ${missingFields.join(', ')}`);
+                }
+                
+                // Check if Firebase is initialized
+                if (!window.firebase) {
+                    throw new Error("Firebase SDK not loaded properly");
+                }
+                
+                // Check if Firebase app is initialized
+                if (!window.firebaseApp) {
+                    throw new Error("Firebase app not initialized");
+                }
+                
+                // Check if Firebase database is initialized
+                if (!window.firebaseDatabase) {
+                    throw new Error("Firebase database not initialized");
+                }
+                
+                resultEl.innerHTML = "<span class='success'>✓ Firebase configuration is valid!</span>";
+                log("Firebase configuration is valid", "success");
+                
+                // Display the configuration
+                resultEl.innerHTML += `<pre>${JSON.stringify(window.firebaseConfig, null, 2)}</pre>`;
+                
+                return true;
+            } catch (error) {
+                resultEl.innerHTML = `<span class='error'>✗ Configuration error: ${error.message}</span>`;
+                log(`Configuration error: ${error.message}`, "error");
+                return false;
+            }
+        }
+
+        // Test Database Read
+        async function testDbRead() {
+            const resultEl = document.getElementById('dbTestResult');
+            
+            try {
+                if (!window.firebaseDatabase) {
+                    throw new Error("Firebase Database not initialized");
+                }
+                
+                log("Testing database read access...");
+                resultEl.innerHTML = "Testing read access...";
+                
+                // Try to read from a test location
+                const testRef = window.firebaseDatabase.ref('test/diagnostic');
+                const snapshot = await testRef.once('value');
+                
+                resultEl.innerHTML = "<span class='success'>✓ Database read successful!</span>";
+                log("Database read successful", "success");
+                
+                // Display the data
+                resultEl.innerHTML += `<pre>Data: ${JSON.stringify(snapshot.val())}</pre>`;
+                
+                return true;
+            } catch (error) {
+                resultEl.innerHTML = `<span class='error'>✗ Database read error: ${error.message}</span>`;
+                log(`Database read error: ${error.message}`, "error");
+                return false;
+            }
+        }
+
+        // Test Database Write
+        async function testDbWrite() {
+            const resultEl = document.getElementById('dbTestResult');
+            
+            try {
+                if (!window.firebaseDatabase) {
+                    throw new Error("Firebase Database not initialized");
+                }
+                
+                log("Testing database write access...");
+                resultEl.innerHTML = "Testing write access...";
+                
+                // Try to write to a test location
+                const testRef = window.firebaseDatabase.ref('test/diagnostic');
+                const testData = {
+                    timestamp: Date.now(),
+                    message: "Diagnostic test",
+                    browser: navigator.userAgent
+                };
+                
+                await testRef.set(testData);
+                
+                resultEl.innerHTML = "<span class='success'>✓ Database write successful!</span>";
+                log("Database write successful", "success");
+                
+                return true;
+            } catch (error) {
+                resultEl.innerHTML = `<span class='error'>✗ Database write error: ${error.message}</span>`;
+                log(`Database write error: ${error.message}`, "error");
+                return false;
+            }
+        }
+        
+        // Create a test room for synchronization testing
+        async function createTestRoom() {
+            const resultEl = document.getElementById('syncTestResult');
+            const roomCodeEl = document.getElementById('testRoomCode');
+            
+            try {
+                if (!window.firebaseDatabase) {
+                    throw new Error("Firebase Database not initialized");
+                }
+                
+                log("Creating test room for sync testing...");
+                resultEl.innerHTML = "Creating test room...";
+                
+                // Generate a random room code
+                const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                testRoomRef = window.firebaseDatabase.ref(`games/${roomCode}`);
+                
+                // Setup initial game state
+                const initialGameState = {
+                    board: createInitialBoard(),
+                    currentPlayer: 1,
+                    player1Count: 12,
+                    player2Count: 12,
+                    moveCount: 0,
+                    lastUpdated: Date.now()
+                };
+                
+                // Create the room data
+                const roomData = {
+                    roomCode: roomCode,
+                    status: 'active',
+                    createdAt: Date.now(),
+                    players: {
+                        player1: {
+                            name: 'Diagnostic Tool',
+                            connected: true
+                        },
+                        player2: {
+                            name: 'Test Player',
+                            connected: true
+                        }
+                    },
+                    gameState: initialGameState
+                };
+                
+                await testRoomRef.set(roomData);
+                
+                // Set up listener for game state changes
+                testRoomRef.child('gameState').on('value', (snapshot) => {
+                    const gameState = snapshot.val();
+                    if (gameState) {
+                        document.getElementById('gameStateMonitor').textContent = JSON.stringify(gameState, null, 2);
+                    }
+                });
+                
+                roomCodeEl.textContent = roomCode;
+                resultEl.innerHTML = "<span class='success'>✓ Test room created!</span>";
+                log(`Test room created with code: ${roomCode}`, "success");
+                
+                // Enable simulate move button
+                document.getElementById('simulateMoveBtn').disabled = false;
+                document.getElementById('clearRoomBtn').disabled = false;
+                
+                return roomCode;
+            } catch (error) {
+                resultEl.innerHTML = `<span class='error'>✗ Error creating test room: ${error.message}</span>`;
+                log(`Error creating test room: ${error.message}`, "error");
+                return null;
+            }
+        }
+        
+        // Simulate a move in the test room
+        async function simulateMove() {
+            const resultEl = document.getElementById('syncTestResult');
+            
+            try {
+                if (!testRoomRef) {
+                    throw new Error("No active test room");
+                }
+                
+                log("Simulating a move in test room...");
+                resultEl.innerHTML = "Simulating move...";
+                
+                // Get current game state
+                const snapshot = await testRoomRef.child('gameState').once('value');
+                const gameState = snapshot.val();
+                
+                if (!gameState || !gameState.board) {
+                    throw new Error("Invalid game state");
+                }
+                
+                // Make a simple move - find first valid piece and move it
+                const board = gameState.board;
+                const currentPlayer = gameState.currentPlayer || 1;
+                
+                // Deep clone the board
+                const newBoard = JSON.parse(JSON.stringify(board));
+                
+                // Find a piece to move
+                let moveFound = false;
+                let fromRow, fromCol, toRow, toCol;
+                
+                // Make a simple move for testing
+                if (currentPlayer === 1) {
+                    // Find a player 1 piece (bottom rows)
+                    for (let row = 7; row >= 5 && !moveFound; row--) {
+                        for (let col = 0; col < 8 && !moveFound; col++) {
+                            const cell = newBoard[row][col];
+                            if (cell && typeof cell === 'object' && cell.player === 1) {
+                                // Try to move up-left or up-right
+                                if (row > 0 && col > 0 && !newBoard[row-1][col-1]) {
+                                    fromRow = row;
+                                    fromCol = col;
+                                    toRow = row - 1;
+                                    toCol = col - 1;
+                                    moveFound = true;
+                                } else if (row > 0 && col < 7 && !newBoard[row-1][col+1]) {
+                                    fromRow = row;
+                                    fromCol = col;
+                                    toRow = row - 1;
+                                    toCol = col + 1;
+                                    moveFound = true;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Find a player 2 piece (top rows)
+                    for (let row = 0; row < 3 && !moveFound; row++) {
+                        for (let col = 0; col < 8 && !moveFound; col++) {
+                            const cell = newBoard[row][col];
+                            if (cell && typeof cell === 'object' && cell.player === 2) {
+                                // Try to move down-left or down-right
+                                if (row < 7 && col > 0 && !newBoard[row+1][col-1]) {
+                                    fromRow = row;
+                                    fromCol = col;
+                                    toRow = row + 1;
+                                    toCol = col - 1;
+                                    moveFound = true;
+                                } else if (row < 7 && col < 7 && !newBoard[row+1][col+1]) {
+                                    fromRow = row;
+                                    fromCol = col;
+                                    toRow = row + 1;
+                                    toCol = col + 1;
+                                    moveFound = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (!moveFound) {
+                    throw new Error("Could not find a valid move to simulate");
+                }
+                
+                // Make the move
+                newBoard[toRow][toCol] = newBoard[fromRow][fromCol];
+                newBoard[fromRow][fromCol] = null;
+                
+                // Update the game state
+                const newGameState = {
+                    ...gameState,
+                    board: newBoard,
+                    currentPlayer: currentPlayer === 1 ? 2 : 1,
+                    moveCount: (gameState.moveCount || 0) + 1,
+                    lastUpdated: Date.now()
+                };
+                
+                await testRoomRef.child('gameState').set(newGameState);
+                
+                resultEl.innerHTML = `<span class='success'>✓ Move simulated! (${fromRow},${fromCol}) → (${toRow},${toCol})</span>`;
+                log(`Move simulated from (${fromRow},${fromCol}) to (${toRow},${toCol})`, "success");
+                
+                return true;
+            } catch (error) {
+                resultEl.innerHTML = `<span class='error'>✗ Error simulating move: ${error.message}</span>`;
+                log(`Error simulating move: ${error.message}`, "error");
+                return false;
+            }
+        }
+        
+        // Clear the test room
+        async function clearTestRoom() {
+            const resultEl = document.getElementById('syncTestResult');
+            const roomCodeEl = document.getElementById('testRoomCode');
+            
+            try {
+                if (!testRoomRef) {
+                    throw new Error("No active test room");
+                }
+                
+                log("Clearing test room...");
+                resultEl.innerHTML = "Clearing test room...";
+                
+                // Remove the room
+                await testRoomRef.remove();
+                
+                roomCodeEl.textContent = "-";
+                resultEl.innerHTML = "<span class='success'>✓ Test room cleared!</span>";
+                log("Test room cleared", "success");
+                
+                document.getElementById('gameStateMonitor').textContent = "No data yet";
+                document.getElementById('simulateMoveBtn').disabled = true;
+                document.getElementById('clearRoomBtn').disabled = true;
+                testRoomRef = null;
+                
+                return true;
+            } catch (error) {
+                resultEl.innerHTML = `<span class='error'>✗ Error clearing test room: ${error.message}</span>`;
+                log(`Error clearing test room: ${error.message}`, "error");
+                return false;
+            }
+        }
+        
+        // Helper function to create an initial game board
+        function createInitialBoard() {
+            const board = Array(8).fill().map(() => Array(8).fill(null));
+            
+            // Fill the board with light/dark squares
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if ((row + col) % 2 === 0) {
+                        board[row][col] = 'light';
+                    } else {
+                        board[row][col] = null; // Dark square, will have pieces or remain null
+                    }
+                }
+            }
+            
+            // Place player 1 pieces (bottom)
+            for (let row = 5; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if ((row + col) % 2 === 1) {
+                        board[row][col] = { player: 1, isKing: false };
+                    }
+                }
+            }
+            
+            // Place player 2 pieces (top)
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if ((row + col) % 2 === 1) {
+                        board[row][col] = { player: 2, isKing: false };
+                    }
+                }
+            }
+            
+            return board;
+        }
+
+        // Initialize when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial connection test
+            testConnection();
+            
+            // Button event listeners
+            document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
+            document.getElementById('testConfigBtn').addEventListener('click', testConfig);
+            document.getElementById('testDbReadBtn').addEventListener('click', testDbRead);
+            document.getElementById('testDbWriteBtn').addEventListener('click', testDbWrite);
+            document.getElementById('clearLogBtn').addEventListener('click', () => {
+                document.getElementById('logOutput').innerHTML = '';
+                log('Log cleared');
+            });
+            document.getElementById('createRoomBtn').addEventListener('click', createTestRoom);
+            document.getElementById('simulateMoveBtn').addEventListener('click', simulateMove);
+            document.getElementById('clearRoomBtn').addEventListener('click', clearTestRoom);
+        });
+    </script>
+</body>
+</html> 

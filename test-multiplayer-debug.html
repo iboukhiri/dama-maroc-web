@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dama Multiplayer Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        .debug-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .debug-panel {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            flex: 1;
+        }
+        
+        .debug-panel h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        
+        .log-area {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        input {
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: #fff;
+        }
+        
+        .status {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .board-mini {
+            display: grid;
+            grid-template-columns: repeat(8, 30px);
+            grid-template-rows: repeat(8, 30px);
+            gap: 1px;
+            background: #444;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .square-mini {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .square-mini.light {
+            background: #f0d9b5;
+        }
+        
+        .square-mini.dark {
+            background: #b58863;
+        }
+        
+        .piece-mini {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        
+        .piece-mini.player1 {
+            background: #fff;
+        }
+        
+        .piece-mini.player2 {
+            background: #000;
+        }
+        
+        .piece-mini.king {
+            border-color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Dama Multiplayer Debug Console</h1>
+    
+    <div class="controls">
+        <input type="text" id="roomCodeInput" placeholder="Room Code (leave empty to create)" />
+        <button onclick="startDebugSession()">Start Debug Session</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+        <button onclick="testMove()">Test Move</button>
+    </div>
+    
+    <div class="debug-container">
+        <div class="debug-panel">
+            <h3>🔍 Game State</h3>
+            <div class="status" id="gameStatus">Not connected</div>
+            <div id="gameInfo">
+                <p>Room: <span id="roomCode">-</span></p>
+                <p>Player: <span id="playerNumber">-</span></p>
+                <p>Current Turn: <span id="currentTurn">-</span></p>
+                <p>Move Count: <span id="moveCount">-</span></p>
+                <p>Is My Turn: <span id="isMyTurn">-</span></p>
+                <p>Move Pending: <span id="movePending">-</span></p>
+            </div>
+            <div class="board-mini" id="debugBoard">
+                <!-- Board will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="debug-panel">
+            <h3>📋 Event Log</h3>
+            <div class="log-area" id="eventLog"></div>
+        </div>
+        
+        <div class="debug-panel">
+            <h3>🔥 Firebase Log</h3>
+            <div class="log-area" id="firebaseLog"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Game Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
+    <script src="online-multiplayer.js"></script>
+    
+    <script>
+        // Enhanced logging system
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        let eventLogElement = null;
+        let firebaseLogElement = null;
+        
+        function initLogElements() {
+            eventLogElement = document.getElementById('eventLog');
+            firebaseLogElement = document.getElementById('firebaseLog');
+        }
+        
+        function addLog(message, type = 'event') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            if (type === 'firebase' && firebaseLogElement) {
+                firebaseLogElement.innerHTML += logMessage + '\n';
+                firebaseLogElement.scrollTop = firebaseLogElement.scrollHeight;
+            } else if (eventLogElement) {
+                eventLogElement.innerHTML += logMessage + '\n';
+                eventLogElement.scrollTop = eventLogElement.scrollHeight;
+            }
+        }
+        
+        // Override console methods
+        console.log = function(...args) {
+            const message = args.join(' ');
+            originalConsoleLog.apply(console, args);
+            
+            if (message.includes('🔥') || message.includes('Firebase') || message.includes('SYNC')) {
+                addLog(message, 'firebase');
+            } else {
+                addLog(message, 'event');
+            }
+        };
+        
+        console.error = function(...args) {
+            const message = args.join(' ');
+            originalConsoleError.apply(console, args);
+            addLog(`❌ ERROR: ${message}`, 'event');
+        };
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initLogElements();
+            initDebugBoard();
+            addLog('🚀 Debug console initialized');
+            
+            // Initialize game
+            window.game = new DamaGame();
+            window.game.init();
+            
+            // Initialize online multiplayer
+            window.onlineMultiplayer = new OnlineMultiplayer();
+            window.onlineMultiplayer.init();
+            
+            // Update UI periodically
+            setInterval(updateDebugUI, 1000);
+        });
+        
+        function initDebugBoard() {
+            const board = document.getElementById('debugBoard');
+            if (!board) return;
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = `square-mini ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                    square.id = `debug-square-${row}-${col}`;
+                    board.appendChild(square);
+                }
+            }
+        }
+        
+        function updateDebugBoard() {
+            if (!window.game || !window.game.board) return;
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.getElementById(`debug-square-${row}-${col}`);
+                    if (!square) continue;
+                    
+                    const piece = window.game.board[row][col];
+                    square.innerHTML = '';
+                    
+                    if (piece && piece !== 'light') {
+                        const pieceElement = document.createElement('div');
+                        pieceElement.className = `piece-mini player${piece.player}`;
+                        if (piece.isKing) {
+                            pieceElement.classList.add('king');
+                        }
+                        square.appendChild(pieceElement);
+                    }
+                }
+            }
+        }
+        
+        function updateDebugUI() {
+            if (!window.game || !window.onlineMultiplayer) return;
+            
+            document.getElementById('roomCode').textContent = window.onlineMultiplayer.roomCode || '-';
+            document.getElementById('playerNumber').textContent = window.onlineMultiplayer.playerNumber || '-';
+            document.getElementById('currentTurn').textContent = window.game.currentPlayer || '-';
+            document.getElementById('moveCount').textContent = window.game.moveCount || '0';
+            document.getElementById('isMyTurn').textContent = window.onlineMultiplayer.isMyTurn() ? 'Yes' : 'No';
+            document.getElementById('movePending').textContent = window.onlineMultiplayer.isMovePending ? 'Yes' : 'No';
+            
+            // Update game status
+            const status = document.getElementById('gameStatus');
+            if (window.onlineMultiplayer.roomCode) {
+                status.textContent = `Connected to room ${window.onlineMultiplayer.roomCode}`;
+                status.style.background = '#2e7d32';
+            } else {
+                status.textContent = 'Not connected';
+                status.style.background = '#d32f2f';
+            }
+            
+            updateDebugBoard();
+        }
+        
+        async function startDebugSession() {
+            const roomCode = document.getElementById('roomCodeInput').value.trim();
+            
+            try {
+                if (roomCode) {
+                    addLog(`🔗 Attempting to join room: ${roomCode}`);
+                    await window.onlineMultiplayer.joinRoom(roomCode);
+                    addLog(`✅ Successfully joined room: ${roomCode}`);
+                } else {
+                    addLog('🆕 Creating new room...');
+                    const newRoomCode = await window.onlineMultiplayer.createRoom();
+                    addLog(`✅ Room created: ${newRoomCode}`);
+                    document.getElementById('roomCodeInput').value = newRoomCode;
+                }
+                
+                // Start the game
+                window.game.startGame('online');
+                addLog('🎮 Game started in online mode');
+                
+            } catch (error) {
+                addLog(`❌ Failed to start debug session: ${error.message}`);
+            }
+        }
+        
+        function clearLogs() {
+            if (eventLogElement) eventLogElement.innerHTML = '';
+            if (firebaseLogElement) firebaseLogElement.innerHTML = '';
+            addLog('🧹 Logs cleared');
+        }
+        
+        function testMove() {
+            if (!window.game || !window.onlineMultiplayer) {
+                addLog('❌ Game not initialized');
+                return;
+            }
+            
+            if (!window.onlineMultiplayer.isMyTurn()) {
+                addLog('❌ Not your turn');
+                return;
+            }
+            
+            // Find a piece that can move
+            let testMoveFound = false;
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const piece = window.game.board[row][col];
+                    if (piece && piece !== 'light' && piece.player === window.onlineMultiplayer.playerNumber) {
+                        const validMoves = window.game.getValidMoves(row, col);
+                        if (validMoves.length > 0) {
+                            const move = validMoves[0];
+                            addLog(`🎯 Testing move: (${row},${col}) -> (${move.row},${move.col})`);
+                            window.game.makeMove(row, col, move.row, move.col);
+                            testMoveFound = true;
+                            break;
+                        }
+                    }
+                }
+                if (testMoveFound) break;
+            }
+            
+            if (!testMoveFound) {
+                addLog('❌ No valid moves found');
+            }
+        }
+    </script>
+</body>
+</html> 

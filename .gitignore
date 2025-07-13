@@ -1,0 +1,25 @@
+# Dependency directories
+node_modules/
+
+# Build / cache
+.cache/
+
+# Logs
+*.log
+firebase-debug.log
+pglite-debug.log
+
+# Firebase local emulation state
+.firebase/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE / Editor settings
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.* 

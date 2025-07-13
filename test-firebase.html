@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Test - Dama Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status {
+            font-size: 18px;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.3);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .instructions {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        a {
+            color: #81C784;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Connection Test</h1>
+        
+        <div class="instructions">
+            <h3>📋 Setup Instructions:</h3>
+            <ol>
+                <li>Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a></li>
+                <li>Create a new project called "dama-multiplayer"</li>
+                <li>Add a web app</li>
+                <li>Copy the config and update <code>firebase-config.js</code></li>
+                <li>Enable Realtime Database in test mode</li>
+                <li>Refresh this page</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Connection Status</h3>
+            <div id="firebaseStatus" class="status">Checking...</div>
+            <div id="databaseStatus" class="status">Checking...</div>
+            <div id="connectionStatus" class="status">Checking...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Connection Tests</h3>
+            <button id="testBtn" onclick="runTests()">Run Connection Test</button>
+            <button onclick="testRoomCreation()">Test Room Creation</button>
+            <button onclick="clearTestData()">Clear Test Data</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎮 Game Launch</h3>
+            <button onclick="launchGame()" id="launchBtn" disabled>Launch Dama Game</button>
+            <p>This button will be enabled once Firebase is properly configured.</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Troubleshooting</h3>
+            <button onclick="showConfig()">Show Current Config</button>
+            <button onclick="showLogs()">Show Console Logs</button>
+            <div id="troubleshootResults"></div>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        let testResults = [];
+
+        function updateStatus() {
+            const firebaseStatus = document.getElementById('firebaseStatus');
+            const databaseStatus = document.getElementById('databaseStatus');
+            const connectionStatus = document.getElementById('connectionStatus');
+            const launchBtn = document.getElementById('launchBtn');
+
+            // Check Firebase initialization
+            if (window.firebaseApp) {
+                firebaseStatus.textContent = '✅ Firebase SDK initialized successfully';
+                firebaseStatus.className = 'status success';
+            } else {
+                firebaseStatus.textContent = '❌ Firebase SDK failed to initialize';
+                firebaseStatus.className = 'status error';
+            }
+
+            // Check database connection
+            if (window.firebaseDatabase) {
+                databaseStatus.textContent = '✅ Realtime Database connected';
+                databaseStatus.className = 'status success';
+                
+                // Enable launch button
+                launchBtn.disabled = false;
+                launchBtn.textContent = 'Launch Dama Game 🚀';
+            } else {
+                databaseStatus.textContent = '❌ Realtime Database not available';
+                databaseStatus.className = 'status error';
+            }
+
+            // Check live connection
+            if (window.firebaseDatabase) {
+                window.firebaseDatabase.ref('.info/connected').on('value', (snapshot) => {
+                    if (snapshot.val() === true) {
+                        connectionStatus.textContent = '🌐 Live connection established';
+                        connectionStatus.className = 'status success';
+                    } else {
+                        connectionStatus.textContent = '📡 Connection lost or pending';
+                        connectionStatus.className = 'status warning';
+                    }
+                });
+            } else {
+                connectionStatus.textContent = '⚠️ Unable to monitor connection';
+                connectionStatus.className = 'status warning';
+            }
+        }
+
+        async function runTests() {
+            const resultsDiv = document.getElementById('testResults');
+            const testBtn = document.getElementById('testBtn');
+            
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+            testResults = [];
+
+            // Test 1: Firebase availability
+            addTestResult('Testing Firebase availability...', 'info');
+            if (!window.isFirebaseReady || !window.isFirebaseReady()) {
+                addTestResult('❌ Firebase not ready', 'error');
+                showTestResults();
+                testBtn.disabled = false;
+                testBtn.textContent = 'Run Connection Test';
+                return;
+            }
+            addTestResult('✅ Firebase is ready', 'success');
+
+            // Test 2: Database write/read
+            addTestResult('Testing database write/read...', 'info');
+            try {
+                const testRef = window.firebaseDatabase.ref('test-connection');
+                await testRef.set({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    message: 'Test successful',
+                    random: Math.random()
+                });
+                
+                const snapshot = await testRef.once('value');
+                const data = snapshot.val();
+                
+                if (data && data.message === 'Test successful') {
+                    addTestResult('✅ Database write/read successful', 'success');
+                    await testRef.remove(); // Cleanup
+                } else {
+                    addTestResult('❌ Database read failed', 'error');
+                }
+            } catch (error) {
+                addTestResult(`❌ Database test failed: ${error.message}`, 'error');
+            }
+
+            // Test 3: Real-time listeners
+            addTestResult('Testing real-time listeners...', 'info');
+            try {
+                const listenerRef = window.firebaseDatabase.ref('listener-test');
+                let listenerWorked = false;
+                
+                const listener = listenerRef.on('value', (snapshot) => {
+                    if (snapshot.val() && snapshot.val().test === 'listener') {
+                        listenerWorked = true;
+                        addTestResult('✅ Real-time listeners working', 'success');
+                    }
+                });
+
+                await listenerRef.set({ test: 'listener' });
+                
+                // Wait a moment for listener to trigger
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (!listenerWorked) {
+                    addTestResult('❌ Real-time listeners not working', 'error');
+                }
+                
+                listenerRef.off('value', listener);
+                await listenerRef.remove();
+                
+            } catch (error) {
+                addTestResult(`❌ Listener test failed: ${error.message}`, 'error');
+            }
+
+            showTestResults();
+            testBtn.disabled = false;
+            testBtn.textContent = 'Run Connection Test';
+        }
+
+        async function testRoomCreation() {
+            if (!window.isFirebaseReady()) {
+                alert('Firebase not ready. Please configure Firebase first.');
+                return;
+            }
+
+            addTestResult('Testing room creation...', 'info');
+            try {
+                const roomCode = 'TEST' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                const roomRef = window.firebaseDatabase.ref(`games/${roomCode}`);
+                
+                await roomRef.set({
+                    roomCode: roomCode,
+                    status: 'testing',
+                    createdAt: firebase.database.ServerValue.TIMESTAMP,
+                    players: {
+                        player1: {
+                            name: 'Test Player',
+                            connected: true
+                        }
+                    }
+                });
+
+                addTestResult(`✅ Test room created: ${roomCode}`, 'success');
+                
+                // Cleanup after 5 seconds
+                setTimeout(async () => {
+                    await roomRef.remove();
+                    addTestResult(`🧹 Test room ${roomCode} cleaned up`, 'info');
+                    showTestResults();
+                }, 5000);
+                
+            } catch (error) {
+                addTestResult(`❌ Room creation failed: ${error.message}`, 'error');
+            }
+            showTestResults();
+        }
+
+        async function clearTestData() {
+            if (!window.isFirebaseReady()) {
+                alert('Firebase not ready.');
+                return;
+            }
+
+            try {
+                const gamesRef = window.firebaseDatabase.ref('games');
+                const snapshot = await gamesRef.once('value');
+                const games = snapshot.val();
+                
+                if (games) {
+                    let cleaned = 0;
+                    for (const roomCode in games) {
+                        if (roomCode.startsWith('TEST')) {
+                            await gamesRef.child(roomCode).remove();
+                            cleaned++;
+                        }
+                    }
+                    addTestResult(`🧹 Cleaned ${cleaned} test rooms`, 'success');
+                } else {
+                    addTestResult('ℹ️ No test data to clean', 'info');
+                }
+            } catch (error) {
+                addTestResult(`❌ Cleanup failed: ${error.message}`, 'error');
+            }
+            showTestResults();
+        }
+
+        function addTestResult(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push({
+                message: `[${timestamp}] ${message}`,
+                type: type
+            });
+        }
+
+        function showTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<h4>Test Results:</h4>';
+            
+            testResults.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `status ${result.type}`;
+                div.textContent = result.message;
+                resultsDiv.appendChild(div);
+            });
+        }
+
+        function showConfig() {
+            const div = document.getElementById('troubleshootResults');
+            const config = window.firebaseApp ? window.firebaseApp.options : 'Firebase not initialized';
+            
+            div.innerHTML = '<h4>Current Configuration:</h4><pre>' + 
+                JSON.stringify(config, null, 2) + '</pre>';
+        }
+
+        function showLogs() {
+            const div = document.getElementById('troubleshootResults');
+            div.innerHTML = '<h4>Console Logs:</h4>' +
+                '<p>Check your browser console (F12) for detailed logs.</p>' +
+                '<p>Look for messages starting with ✅, ❌, or ⚠️</p>';
+        }
+
+        function launchGame() {
+            window.open('index.html', '_blank');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus();
+            setTimeout(updateStatus, 2000); // Check again after 2 seconds
+        });
+    </script>
+</body>
+</html> 
