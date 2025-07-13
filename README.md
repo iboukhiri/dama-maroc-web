@@ -28,4 +28,4 @@ firebase deploy --only hosting
 ```
 
 ## License
-MIT © 2023 Iliass Boukhiri 
+© 2025 Iliass Boukhiri 
